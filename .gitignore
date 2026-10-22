@@ -1,0 +1,32 @@
+
+cat > .gitignore <<'EOF'
+# Python environments
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Datasets and generated artifacts
+module01/data/
+*.parquet
+mlruns/
+mlflow.db
+models/
+
+# Upstream learning materials
+course/
+
+# Local configuration
+.env
+.env.*
+!.env.example
+
+# IDE and OS
+.idea/
+.vscode/
+.DS_Store
+EOF
