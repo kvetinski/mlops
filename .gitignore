@@ -30,3 +30,9 @@ course/
 .vscode/
 .DS_Store
 EOF
+
+# Module 2 generated files
+module02/data/
+module02/output/
+module02/artifacts/
+module02/mlflow.db
