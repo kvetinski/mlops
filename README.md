@@ -10,7 +10,7 @@ A hands-on MLOps engineering project built while completing the [DataTalks.Club 
 | ------ | ------------------------------------ | --------- |
 | 01     | Introduction to MLOps                | Completed |
 | 02     | Experiment Tracking & Model Registry | Completed |
-| 03     | ML Pipeline Orchestration            | Planned   |
+| 03     | ML Pipeline Orchestration            | Completed |
 | 04     | Model Deployment                     | Planned   |
 | 05     | Model Monitoring                     | Planned   |
 | 06     | Engineering Best Practices           | Planned   |

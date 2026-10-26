@@ -36,3 +36,8 @@ module02/data/
 module02/output/
 module02/artifacts/
 module02/mlflow.db
+
+
+# Module 3 generated files
+module03/.locks/
+module03/output/
