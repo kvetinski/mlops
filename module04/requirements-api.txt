@@ -1,0 +1,4 @@
+# Serving dependencies pinned from the working local environment.
+fastapi==0.154.0
+uvicorn==0.54.0
+skops==0.16.0

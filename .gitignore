@@ -41,3 +41,10 @@ module02/mlflow.db
 # Module 3 generated files
 module03/.locks/
 module03/output/
+
+
+# Module 4 generated files
+module04/artifacts/
+module04/reports/
+module04/tests/__pycache__/
+
