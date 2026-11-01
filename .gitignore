@@ -48,3 +48,7 @@ module04/artifacts/
 module04/reports/
 module04/tests/__pycache__/
 
+
+# Module 5 generated files
+module05/data/
+
