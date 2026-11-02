@@ -1,0 +1,27 @@
+# Explicitly install this config with:
+#   pipenv run pre-commit install --config module06/.pre-commit-config.yaml
+# Both hooks use the Ruff executable in the Pipenv environment.
+# Limit the hooks to Module 6 homework Python files.
+
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-check
+        name: Ruff lint and import sorting (Module 6)
+        entry: >-
+          bash -c 'PIPENV_IGNORE_VIRTUALENVS=1
+          PIPENV_PIPFILE="$PWD/module04/homework/Pipfile"
+          pipenv run ruff check --fix --config module06/pyproject.toml "$@"' --
+        language: system
+        types: [python]
+        files: ^module06/homework/.*\.py$
+
+      - id: ruff-format
+        name: Ruff format (Module 6)
+        entry: >-
+          bash -c 'PIPENV_IGNORE_VIRTUALENVS=1
+          PIPENV_PIPFILE="$PWD/module04/homework/Pipfile"
+          pipenv run ruff format --config module06/pyproject.toml "$@"' --
+        language: system
+        types: [python]
+        files: ^module06/homework/.*\.py$

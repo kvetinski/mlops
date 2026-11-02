@@ -1,0 +1,11 @@
+services:
+  localstack:
+    # Legacy pinned Community image for this self-contained 2025 coursework.
+    # For authenticated 2026 releases, override LOCALSTACK_IMAGE and set
+    # LOCALSTACK_AUTH_TOKEN in the shell (never commit a token).
+    image: ${LOCALSTACK_IMAGE:-localstack/localstack:4.14.0}
+    network_mode: host   # Linux: bypass Docker bridge/VPN port-forwarding problems
+    environment:
+      SERVICES: s3
+      GATEWAY_LISTEN: 127.0.0.1:4566
+      LOCALSTACK_AUTH_TOKEN: ${LOCALSTACK_AUTH_TOKEN:-}

@@ -1,0 +1,152 @@
+name: Module 6 - Quality, Integration and Delivery
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/module06-ci.yml"
+      - "module06/**"
+      - "module04/homework/Pipfile"
+      - "module04/homework/Pipfile.lock"
+  pull_request:
+    paths:
+      - ".github/workflows/module06-ci.yml"
+      - "module06/**"
+      - "module04/homework/Pipfile"
+      - "module04/homework/Pipfile.lock"
+  workflow_dispatch:
+    inputs:
+      publish_image:
+        description: "Explicitly publish the verified batch image to GHCR"
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      PIPENV_PIPFILE: ${{ github.workspace }}/module04/homework/Pipfile
+      PIPENV_IGNORE_VIRTUALENVS: "1"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pipenv
+          cache-dependency-path: module04/homework/Pipfile.lock
+      - name: Install locked development dependencies
+        run: |
+          python -m pip install --upgrade pip pipenv
+          pipenv sync --dev
+      - name: Ruff and unit tests
+        run: make -f module06/Makefile check
+
+  integration:
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    env:
+      PIPENV_PIPFILE: ${{ github.workspace }}/module04/homework/Pipfile
+      PIPENV_IGNORE_VIRTUALENVS: "1"
+      S3_ENDPOINT_URL: http://127.0.0.1:4566
+      S3_BUCKET: nyc-duration-iac
+      AWS_ACCESS_KEY_ID: test
+      AWS_SECRET_ACCESS_KEY: test
+      AWS_DEFAULT_REGION: us-east-1
+      AWS_EC2_METADATA_DISABLED: "true"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pipenv
+          cache-dependency-path: module04/homework/Pipfile.lock
+      - uses: hashicorp/setup-terraform@v3
+      - name: Install locked dependencies
+        run: |
+          python -m pip install --upgrade pip pipenv
+          pipenv sync --dev
+      - name: Download and authenticate the trusted course model
+        run: |
+          curl --fail --location --show-error --silent --retry 3 \
+            https://raw.githubusercontent.com/DataTalksClub/mlops-zoomcamp/main/cohorts/2025/04-deployment/homework/model.bin \
+            --output module04/homework/model.bin
+          sha256sum --check module06/homework/model.sha256
+      - name: Start local S3 emulator
+        run: docker compose -f module06/homework/compose.localstack.yaml up -d
+      - name: Wait for LocalStack
+        run: |
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent --max-time 2 \
+              http://127.0.0.1:4566/_localstack/health >/dev/null 2>&1; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "LocalStack did not become ready" >&2
+          exit 1
+      - name: Validate and apply LocalStack Terraform
+        run: |
+          make -f module06/Makefile tf-validate
+          make -f module06/Makefile tf-apply
+      - name: Test end-to-end S3 batch inference in Terraform bucket
+        run: make -f module06/Makefile integration
+      - name: Show emulator logs on failure
+        if: failure()
+        run: docker compose -f module06/homework/compose.localstack.yaml logs --tail=100
+      - name: Clean up emulator
+        if: always()
+        run: docker compose -f module06/homework/compose.localstack.yaml down --volumes --remove-orphans
+
+  package:
+    needs: [quality, integration]
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v7
+      - name: Download verified course model
+        run: |
+          curl --fail --location --show-error --silent --retry 3 \
+            https://raw.githubusercontent.com/DataTalksClub/mlops-zoomcamp/main/cohorts/2025/04-deployment/homework/model.bin \
+            --output module04/homework/model.bin
+          sha256sum --check module06/homework/model.sha256
+      - name: Build batch container
+        run: bash module06/scripts/build_image.sh
+      - name: Smoke-test container entry point
+        run: docker run --rm taxi-batch:module06 --help
+
+  publish:
+    # Intentionally opt-in: ordinary pushes and PRs NEVER publish a package.
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_image == true
+    needs: [quality, integration, package]
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v7
+      - name: Download verified course model
+        run: |
+          curl --fail --location --show-error --silent --retry 3 \
+            https://raw.githubusercontent.com/DataTalksClub/mlops-zoomcamp/main/cohorts/2025/04-deployment/homework/model.bin \
+            --output module04/homework/model.bin
+          sha256sum --check module06/homework/model.sha256
+      - name: Authenticate to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build and publish image on explicit request
+        env:
+          IMAGE: ghcr.io/${{ github.repository }}:module06
+        run: |
+          image="$(printf '%s' "$IMAGE" | tr '[:upper:]' '[:lower:]')"
+          DOCKER_IMAGE="$image" bash module06/scripts/build_image.sh
+          docker push "$image"

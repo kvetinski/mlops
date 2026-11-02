@@ -1,0 +1,13 @@
+# Scope Ruff to the Module 6 homework files. This configuration does not
+# modify the completed Python code from Modules 1–5.
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+
+[tool.ruff.lint]
+# Critical errors, unused names, and import ordering.
+select = ["E4", "E7", "E9", "F", "I"]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"

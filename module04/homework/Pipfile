@@ -9,6 +9,10 @@ pandas = "*"
 pyarrow = "*"
 
 [dev-packages]
+pytest = "*"
+boto3 = "*"
+ruff = "*"
+pre-commit = "*"
 
 [requires]
 python_version = "3.12"
